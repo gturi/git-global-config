@@ -8,10 +8,12 @@ const isEmptyOrOnlyTicketNumber = (line, ticketNumber) => {
   const trimmedLine = line.trim();
   return trimmedLine.length === 0 || trimmedLine === ticketNumber;
 };
+const startsWithTicketNumber = (line, ticketNumber) => line.indexOf(ticketNumber) === 0;
 
 const isValidCommit = (messageLines, branchName) => {
   const ticketNumber = branchName.split('/').pop();
-  return messageLines.some(line => !startsWithComment(line) && !isEmptyOrOnlyTicketNumber(line, ticketNumber));
+  return startsWithTicketNumber(messageLines[0], ticketNumber) &&
+    messageLines.some(line => !startsWithComment(line) && !isEmptyOrOnlyTicketNumber(line, ticketNumber));
 }
 
 const messageFile = process.argv[2];
