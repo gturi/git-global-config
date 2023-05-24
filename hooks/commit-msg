@@ -1,0 +1,30 @@
+#!/usr/bin/env node
+
+const hookUtil = require('./git-hook-utils');
+
+const commentSymbol = hookUtil.getCommentSymbol();
+const startsWithComment = (str) => str.indexOf(commentSymbol) === 0;
+const isEmptyOrOnlyTicketNumber = (line, ticketNumber) => {
+  const trimmedLine = line.trim();
+  return trimmedLine.length === 0 || trimmedLine === ticketNumber;
+};
+
+const isValidCommit = (messageLines, branchName) => {
+  const ticketNumber = branchName.split('/').pop();
+  return messageLines.some(line => !startsWithComment(line) && !isEmptyOrOnlyTicketNumber(line, ticketNumber));
+}
+
+const messageFile = process.argv[2];
+
+const messageLines = hookUtil.getGitCommitMessageLines(messageFile);
+const firstLine = messageLines[0];
+const branchName = hookUtil.getBranchName();
+
+if (hookUtil.isAllowedBranch(branchName) && hookUtil.isValidMessage(firstLine) && !isValidCommit(messageLines, branchName)) {
+  console.error('Missing meaningful commit message, found:');
+  messageLines
+    .filter(line => !startsWithComment(line))
+    .forEach(line => console.error(`'${line}'`));
+
+  process.exit(1);
+}
