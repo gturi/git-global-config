@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+'use strict';
+
 const hookUtil = require('./git-hook-utils');
 
 const messageFile = process.argv[2];
@@ -9,13 +11,15 @@ const sha1 = process.argv[4];
 const messageLines = hookUtil.getGitCommitMessageLines(messageFile);
 const firstLine = messageLines[0];
 const branchName = hookUtil.getBranchName();
+const ticketNumber = hookUtil.getTicketNumber(branchName);
 
-if (hookUtil.isAllowedBranch(branchName) && hookUtil.isValidMessage(firstLine)) {
-  const ticketNumber = branchName.split('/').pop();
-  if (firstLine.indexOf(ticketNumber) !== 0) {
-    messageLines[0] = `${ticketNumber} ${firstLine}`;
-    hookUtil.setGitCommitMessageLines(messageFile, messageLines.join('\n'));
-  }
+const allowedBranch = hookUtil.isAllowedBranch(branchName);
+const messageToNotSkip = !hookUtil.isMessageKindToSkip(firstLine);
+const ticketNumberAlreadyPresent = firstLine.indexOf(ticketNumber) === 0
+const addTicketNumberInfoToCommitMessage = allowedBranch && messageToNotSkip && !ticketNumberAlreadyPresent;
+if (addTicketNumberInfoToCommitMessage) {
+  messageLines[0] = `${ticketNumber} ${firstLine}`;
+  hookUtil.setGitCommitMessageLines(messageFile, messageLines.join('\n'));
 } else {
-  console.log(`Template not applied for ${branchName} with line ${firstLine}`);
+  console.log(`Template not applied for ${branchName}`);
 }

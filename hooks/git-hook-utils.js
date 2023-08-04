@@ -14,19 +14,22 @@ const getMessagesKindsToSkip = () => [
   'Merge pull request',
   getCommentSymbol()
 ];
-const isValidMessage = (str) => !getMessagesKindsToSkip().some(messageKind => str.indexOf(messageKind) === 0);
+const isMessageKindToSkip = (str) => getMessagesKindsToSkip().some(messageKind => str.indexOf(messageKind) === 0);
 
 
 const allowedBranchPatterns = [
-  '^feature\/.+$',
-  '^feat\/.+$',
-  '^hotfix\/.+$',
-  '^hf\/.+$'
-];
+  'feature',
+  'feat',
+  'hotfix',
+  'hf',
+  'bugfix',
+  'fix'
+].join('|');
 const isAllowedBranch = (branchName) => {
-  return allowedBranchPatterns
-    .map(branchPattern => new RegExp(branchPattern))
-    .some(branchPattern => branchName.match(branchPattern));
+  // issue tracking systems usually contain a numeric id
+  const ticketNumberPattern = ".*\\d+.*";
+  const branchPattern = `^(${allowedBranchPatterns})\\/${ticketNumberPattern}$`;
+  return branchName.match(new RegExp(branchPattern));
 };
 
 let branchName;
@@ -46,12 +49,14 @@ const setGitCommitMessageLines = (gitCommitMessageFile, messageLines) => {
   fs.writeFileSync(gitCommitMessageFile, messageLines, { encoding: 'utf-8' });
 }
 
+const getTicketNumber = (branchName) => branchName.split('/').pop();
 
 module.exports = {
   getBranchName,
   getCommentSymbol,
   getGitCommitMessageLines,
-  isValidMessage,
+  getTicketNumber,
+  isMessageKindToSkip,
   isAllowedBranch,
   setGitCommitMessageLines
 }

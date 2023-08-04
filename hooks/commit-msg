@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+'use strict';
+
 const hookUtil = require('./git-hook-utils');
 
 const commentSymbol = hookUtil.getCommentSymbol();
@@ -8,12 +10,10 @@ const isEmptyOrOnlyTicketNumber = (line, ticketNumber) => {
   const trimmedLine = line.trim();
   return trimmedLine.length === 0 || trimmedLine === ticketNumber;
 };
-const startsWithTicketNumber = (line, ticketNumber) => line.indexOf(ticketNumber) === 0;
 
 const isValidCommit = (messageLines, branchName) => {
-  const ticketNumber = branchName.split('/').pop();
-  return startsWithTicketNumber(messageLines[0], ticketNumber) &&
-    messageLines.some(line => !startsWithComment(line) && !isEmptyOrOnlyTicketNumber(line, ticketNumber));
+  const ticketNumber = hookUtil.getTicketNumber(branchName);
+  return messageLines.some(line => !startsWithComment(line) && !isEmptyOrOnlyTicketNumber(line, ticketNumber));
 }
 
 const messageFile = process.argv[2];
@@ -22,7 +22,11 @@ const messageLines = hookUtil.getGitCommitMessageLines(messageFile);
 const firstLine = messageLines[0];
 const branchName = hookUtil.getBranchName();
 
-if (hookUtil.isAllowedBranch(branchName) && hookUtil.isValidMessage(firstLine) && !isValidCommit(messageLines, branchName)) {
+const allowedBranch = hookUtil.isAllowedBranch(branchName);
+const messageToNotSkip = !hookUtil.isMessageKindToSkip(firstLine);
+const commitNotValid = !isValidCommit(messageLines, branchName);
+const raiseError = allowedBranch && messageToNotSkip && commitNotValid;
+if (raiseError) {
   console.error('Missing meaningful commit message, found:');
   messageLines
     .filter(line => !startsWithComment(line))
